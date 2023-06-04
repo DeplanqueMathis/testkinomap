@@ -11,3 +11,8 @@ Une fois les deux étapes précédentes effectuées il vous suffira d'exécuter 
 ```
 ares-launch -s 23 /le-lien-vers-le-projet/
 ```
+
+#### Blocage lors du test :
+Lors de ce test j'ai rencontré quelques blocage que je n'ai pas pu prendre le temps d'appofondir.<br/>
+Dans un premier temps je n'ai pas trouvé de manière "propre" d'instancier un projet VueJS, j'ai donc utilisé le CDN vue.<br/>
+Dans un second temps le select du filtre ne fonctionne pas avec la télécommande, la solution que j'aurais proposé si j'en avais eu le temps aurait été de réaliser un composant de select dropdown 100% custom pour le projet.
