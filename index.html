@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Kinomap WebOS</title>
+</head>
+
+<script src="webOSTVjs-1.2.4/webOSTV.js" charset="utf-8"></script>
+<script src="webOSTVjs-1.2.4/webOSTV-dev.js" charset="utf-8"></script>
+<script src="https://luke-chang.github.io/js-spatial-navigation/spatial_navigation.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<link rel="stylesheet" href="style/style.css"/>
+<body>
+	<div id="app">
+		<div v-if="errorMessage !== ''" class="error-message-container">
+			<div class="error-message" v-html="errorMessage">
+
+			</div>
+		</div>
+		<div>
+			<div class="video-list-header">
+				<h1 class="list-title">Vos vidéos :</h1>
+				<select class="select-sort" v-model="sortVideo" @keydown="(event) => { this.keyDownOnSelect(event) }">
+					<option value="name">De A à Z</option>
+					<option value="distance">Par distance</option>
+					<option value="duration">Par durée</option>
+				</select>
+			</div>
+			<div class="video-list">
+				<div v-for="(video, index) in videos" :key="index" :data-video="index" class="video-item" @keydown="(event) => { this.keyDown(event) }" @click="(event) => { click(event) }">
+					<div class="video-thumbnail">
+						<img v-if="!video.imgError" :src="video.data.thumbnails.medium" @error="video.imgError = true">
+						<img v-else src="media/placeholder.png">
+						<div class="video-informations">
+							<div class="video-informations-container">
+								<h5 class="video-title" v-html="video.data.name"></h5>
+								<span class="video-distance" v-html="distanceConversion(video.data.distance)"></span>
+								<span class="video-duration" v-html="durationConversion(video.data.duration)"></span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div v-if="currentUrlVideo !== ''" class="fullscreen-video">
+				<div class="fullscreen-video-container">
+					<video class="video" id="video" autoplay controls @error="showError('Vidéo indisponible')">
+						<source src="currentUrlVideo"/>
+					</video>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+
+</html>
+
+<script type="text/javascript">
+	const { createApp } = Vue
+
+	createApp({
+		data() {
+			return {
+				videos: {},
+				errorMessage: '',
+				currentUrlVideo: '',
+				sortVideo: 'name',
+			}
+		},
+		methods: {
+			showError: function (message) {
+				this.errorMessage = message;
+			},
+			setFocusable: function () {
+				this.$nextTick(() => {
+					SpatialNavigation.uninit();
+					SpatialNavigation.init();
+
+					// Define navigable elements (anchors and elements with "focusable" class).
+					SpatialNavigation.add({
+						selector: '.video-item, .select-sort'
+					});
+
+					// Make the *currently existing* navigable elements focusable.
+					SpatialNavigation.makeFocusable();
+
+					// Focus the first navigable element.
+					SpatialNavigation.focus('.video-item');
+					var elements = document.getElementsByClassName("video-item");
+
+					for (var i = 0; i < elements.length; i++) {
+						elements[i].addEventListener('mouseover', (event) => {
+							event.currentTarget.focus();
+						}, false);
+					}
+				})
+			},
+			distanceConversion: function (distance) {
+				try {
+					return (parseFloat(distance) / 1000).toFixed(2) + 'km';
+				}
+				catch (e){
+					console.log(e);
+					return 'Distance indéterminée';
+				}
+			},
+			durationConversion: function (duration) {
+				try {
+					return Math.round(parseFloat(duration) / 60) + ' min';
+				}
+				catch (e){
+					console.log(e);
+					return 'Durée indéterminée';
+				}
+			},
+			keyDownOnSelect: function (event) {
+				if(event.keyCode === 13){
+					SpatialNavigation.uninit();
+				}
+			},
+			keyDown: function (event) {
+				if(event.keyCode === 13){
+					this.playVideo(event.currentTarget.dataset.video);
+				}
+			},
+			click: function (event) {
+				this.playVideo(event.currentTarget.dataset.video);
+			},
+			playVideo: function (indexVideo) {
+				try{
+					SpatialNavigation.uninit();
+					this.currentUrlVideo = this.videos[indexVideo].data.video_url_sd;
+					this.$nextTick(() => {
+						document.getElementById('video').focus();
+					})
+				} catch (e){
+					console.log(e)
+					this.showError('vidéo indisponible')
+				}
+			},
+			videoSorting: function () {
+				this.videos.sort((a,b) => {
+					if(this.sortVideo === 'name') {
+						return a.data[this.sortVideo].localeCompare(b.data[this.sortVideo]);
+					} else {
+						return a.data[this.sortVideo] - b.data[this.sortVideo];
+					}
+				});
+			}
+		},
+		created: function () {
+			axios.get('https://kinomap-5a790-default-rtdb.europe-west1.firebasedatabase.app/videos.json')
+			.then((response) => {
+				this.videos = Object.values(response.data)[0].data;
+				console.log(this.videos);
+				this.videoSorting();
+				this.$forceUpdate();
+			})
+			.catch((error) => {
+				this.showError(error);
+			})
+
+			window.addEventListener("keydown", (inEvent) => {
+				if(window.event) {
+					keycode = inEvent.keyCode;
+				} else if(e.which) {
+					keycode = inEvent.which;
+				}
+
+				if(this.currentUrlVideo !== '' && keycode === 461){
+					this.currentUrlVideo = '';
+					this.$forceUpdate();
+					this.setFocusable();
+				}
+			});
+		},
+		watch: {
+			videos: function () {
+				this.setFocusable();
+			},
+			sortVideo: function () {
+				this.videoSorting();
+				this.setFocusable();
+			}
+		}
+	}).mount('#app')
+</script>

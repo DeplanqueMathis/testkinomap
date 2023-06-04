@@ -1,0 +1,11 @@
+{
+  "id": "com.domain.app",
+  "version": "0.0.1",
+  "vendor": "Kinomap",
+  "type": "web",
+  "main": "index.html",
+  "title": "Kinomap",
+  "icon": "media/logo.jpg",
+  "largeIcon": "media/logo.jpg",
+  "disableBackHistoryAPI": true
+}
