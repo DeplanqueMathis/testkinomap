@@ -28,24 +28,12 @@
 				</select>
 			</div>
 			<div class="video-list">
-				<div v-for="(video, index) in videos" :key="index" :data-video="index" class="video-item" @keydown="(event) => { this.keyDown(event) }" @click="(event) => { click(event) }">
-					<div class="video-thumbnail">
-						<img v-if="!video.imgError" :src="video.data.thumbnails.medium" @error="video.imgError = true">
-						<img v-else src="media/placeholder.png">
-						<div class="video-informations">
-							<div class="video-informations-container">
-								<h5 class="video-title" v-html="video.data.name"></h5>
-								<span class="video-distance" v-html="distanceConversion(video.data.distance)"></span>
-								<span class="video-duration" v-html="durationConversion(video.data.duration)"></span>
-							</div>
-						</div>
-					</div>
-				</div>
+				<video-thumbnail v-for="(video, index) in videos" :key="index" :video="video" :index="index"/>
 			</div>
 			<div v-if="currentUrlVideo !== ''" class="fullscreen-video">
 				<div class="fullscreen-video-container">
 					<video class="video" id="video" autoplay controls @error="showError('Vidéo indisponible')">
-						<source src="currentUrlVideo"/>
+						<source :src="currentUrlVideo"/>
 					</video>
 				</div>
 			</div>
@@ -55,7 +43,8 @@
 
 </html>
 
-<script type="text/javascript">
+<script type="module">
+	import videoThumbnail from "./component/videoThumbnail.js";
 	const { createApp } = Vue
 
 	createApp({
@@ -95,36 +84,10 @@
 					}
 				})
 			},
-			distanceConversion: function (distance) {
-				try {
-					return (parseFloat(distance) / 1000).toFixed(2) + 'km';
-				}
-				catch (e){
-					console.log(e);
-					return 'Distance indéterminée';
-				}
-			},
-			durationConversion: function (duration) {
-				try {
-					return Math.round(parseFloat(duration) / 60) + ' min';
-				}
-				catch (e){
-					console.log(e);
-					return 'Durée indéterminée';
-				}
-			},
 			keyDownOnSelect: function (event) {
 				if(event.keyCode === 13){
 					SpatialNavigation.uninit();
 				}
-			},
-			keyDown: function (event) {
-				if(event.keyCode === 13){
-					this.playVideo(event.currentTarget.dataset.video);
-				}
-			},
-			click: function (event) {
-				this.playVideo(event.currentTarget.dataset.video);
 			},
 			playVideo: function (indexVideo) {
 				try{
@@ -152,7 +115,6 @@
 			axios.get('https://kinomap-5a790-default-rtdb.europe-west1.firebasedatabase.app/videos.json')
 			.then((response) => {
 				this.videos = Object.values(response.data)[0].data;
-				console.log(this.videos);
 				this.videoSorting();
 				this.$forceUpdate();
 			})
@@ -161,9 +123,10 @@
 			})
 
 			window.addEventListener("keydown", (inEvent) => {
+				let keycode;
 				if(window.event) {
 					keycode = inEvent.keyCode;
-				} else if(e.which) {
+				} else if(inEvent.which) {
 					keycode = inEvent.which;
 				}
 
@@ -183,5 +146,5 @@
 				this.setFocusable();
 			}
 		}
-	}).mount('#app')
+	}).component('video-thumbnail', videoThumbnail).mount('#app')
 </script>
